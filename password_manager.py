@@ -1,3 +1,4 @@
+from tokenize import String
 from cryptography.fernet import Fernet # used for symmetric key encryption
 import tkinter # used for the gui
 import secrets # tool for generating cryptographically strong random numbers. It is designed specifically for managing sensitive data like passwords
@@ -41,7 +42,7 @@ def new_user_gui(window):
         password_txt = txt_password.get()
         score, string = strength_checker(password_txt)
         if int(score) <= 4:
-            messagebox.showerror("Error", score)
+            messagebox.showerror("Error", string)
             return
 
         conn = sqlite3.connect(DB_Name)
@@ -92,8 +93,9 @@ def returning_user_gui(window):
         # calculate what the hash should be with the salt from the database
         input_hash = kdf.derive(password_input.encode())
         if input_hash == stored_hash:
+            encryption_key = base64.urlsafe_b64encode(input_hash)
             messagebox.showinfo("Success", "Login Accepted")
-            add_password(window)
+            vault_gui(window, encryption_key)
         else:
             messagebox.showerror("Error", "Incorrect Password")
             txt_password.delete(0, 'end') # clear the box so the user can try again
@@ -160,26 +162,153 @@ def strength_checker(password):
     return str(score), string
 
 
-def add_password(window):
+
+
+
+def add_password(window, key):
     for widget in window.winfo_children():
         widget.destroy()
+    window.title("Add Password")
+
     
     # add instuction tkinter input
-    instruction0 = tkinter.Label(window, text = "Enter Website Name")
-    instruction0.pack(pady=10)
-    txt_website = tkinter.Entry(window, width = 20, show = "*")
-    txt_website.pack(pady=10)
+    instruction0 = tkinter.Label(window, text = "Enter Website Name:")
+    instruction0.pack()
+    txt_website = tkinter.Entry(window, width = 20)
+    txt_website.pack()
 
-    instruction1 = tkinter.Label(window, text = "Enter Username")
-    instruction1.pack(pady=10)
-    txt_username = tkinter.Entry(window, width = 20, show = "*")
-    txt_username.pack(pady=10)
+    instruction1 = tkinter.Label(window, text = "Enter Username:")
+    instruction1.pack()
+    txt_username = tkinter.Entry(window, width = 20)
+    txt_username.pack()
 
 
-    instruction2 = tkinter.Label(window, text = "Enter Password")
-    instruction2.pack(pady=10)    
+    instruction2 = tkinter.Label(window, text = "Enter Password:")
+    instruction2.pack()    
     txt_password = tkinter.Entry(window, width = 20, show = "*")
-    txt_password.pack(pady=10)
+    txt_password.pack()
+
+    def save_password():
+        password_txt = txt_password.get()
+        username_txt = txt_username.get()
+        website_txt = txt_website.get()
+
+        score, string = strength_checker(password_txt)
+        if int(score) <= 4:
+            messagebox.showerror("Error", string)
+            return
+        if website_txt == "":
+            messagebox.showerror("Error", "Website cannot be empty")
+        if password_txt == "":
+            messagebox.showerror("Error", "Password cannot be empty")
+        
+        conn = sqlite3.connect(DB_Name)
+        cursor = conn.cursor()
+
+        f = Fernet(key)
+        encrypted_password = f.encrypt(password_txt.encode())
+        # spl automatically adds the id
+        cursor.execute("""INSERT INTO password_vault (website, username, encrypted_password) VALUES (? , ? , ?)""", (website_txt, username_txt, encrypted_password))
+
+        conn.commit()
+        conn.close()
+        messagebox.showinfo("Success", "Password Saved")
+        vault_gui(window, key)
+        
+    tkinter.Button(window, text="Save", command=save_password).pack(pady=10)
+    tkinter.Button(window, text="Cancel", command=lambda: vault_gui(window, key)).pack()
+
+
+def delete_password(window, key):
+    for widget in window.winfo_children():
+        widget.destroy()
+
+    window.title("Delete Password")
+
+
+    instruction0 = tkinter.Label(window, text = "Enter Website Name to Delete:")
+    instruction0.pack()
+    txt_website = tkinter.Entry(window, width = 20)
+    txt_website.pack()
+
+    conn = sqlite3.connect(DB_Name)
+    cursor = conn.cursor()
+    cursor.execute("SELECT website FROM password_vault")
+    rows = cursor.fetchall()
+    for row in rows:
+            website = row[0]
+            display_text = f"{website}"
+            label = tkinter.Label(window, text = display_text)
+            label.pack()
+    conn.close()
+
+    def delete_pass():
+        website_txt = txt_website.get()
+        if website_txt == "":
+            messagebox.showerror("Error", "website cannot be empty")
+        conn = sqlite3.connect(DB_Name)
+        cursor = conn.cursor()
+        
+        cursor.execute("""DELETE FROM password_vault WHERE ? = ?""", (website, website_txt))
+
+        conn.commit()
+        conn.close()
+
+
+
+        
+    
+        messagebox.showinfo("Success", "Password Deleted")
+        vault_gui(window, key)
+
+    tkinter.Button(window, text="Delete", command=delete_pass).pack(pady=10)
+    tkinter.Button(window, text="Cancel", command=lambda: vault_gui(window, key)).pack()
+
+def decrypt_pass(encrypted_pass, key):
+        f = Fernet(key)
+        try:
+            return f.decrypt(encrypted_pass).decode()
+        except:
+            return "Error"
+# this is the gui to view the stored passwords
+def vault_gui(window, key):
+    for widget in window.winfo_children():
+        widget.destroy()
+
+    window.geometry("600x400")
+    window.title("My Password Vault")
+    
+    conn = sqlite3.connect(DB_Name)
+    cursor = conn.cursor()
+    cursor.execute("SELECT website, username, encrypted_password FROM password_vault")
+    rows = cursor.fetchall()
+    conn.close()
+
+    header = tkinter.Label(window, text = "Website | Username | Password", font = ("Arial", 12, "bold"))
+    header.pack(pady = 10)
+
+    for row in rows:
+        website = row[0]
+        username = row[1]
+        encrypted_password = row[2]
+
+        decrypted_pass = decrypt_pass(encrypted_password, key)
+        display_text = f"{website} | {username} | {decrypted_pass}"
+        label = tkinter.Label(window, text = display_text)
+        label.pack()
+    
+    def add_password_gui():
+        add_password(window, key)
+    def delete_password_gui():
+        delete_password(window, key)
+
+    btn_add = tkinter.Button(window, text = "Add New Password", command = add_password_gui)
+    btn_add.pack(pady=10)
+    btn_add2 = tkinter.Button(window, text = "Delete Password", command = delete_password_gui)
+    btn_add2.pack(pady=10)
+
+
+    
 
 
 
@@ -194,7 +323,7 @@ def start_app():
     CREATE TABLE IF NOT EXISTS master_password (id INTEGER PRIMARY KEY, password_hash BLOB NOT NULL, salt BLOB NOT NULL)
     """)
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS password_vault (id INTEGER PRIMARY KEY AUTOINCREMENT, website TEXT NOT NULL, username TEXT, ecrypted_password BLOB NOT NULL)
+    CREATE TABLE IF NOT EXISTS password_vault (id INTEGER PRIMARY KEY AUTOINCREMENT, website TEXT NOT NULL, username TEXT, encrypted_password BLOB NOT NULL)
     """)
 
     conn.commit()
