@@ -1,7 +1,5 @@
-from tokenize import String
 from cryptography.fernet import Fernet # used for symmetric key encryption
 import tkinter # used for the gui
-import secrets # tool for generating cryptographically strong random numbers. It is designed specifically for managing sensitive data like passwords
 # use SQLlite to store passwords
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -10,8 +8,6 @@ import os
 import sqlite3
 from tkinter import messagebox
 import re
-import sys
-
 
 
 DB_Name = "passwords.db"
@@ -142,7 +138,7 @@ def strength_checker(password):
         
 
     # password should contain a special character !#$%&'()*+,-./:;<=>?@[\]^_\`{|}~
-    if re.search(r"[!#$%&'()*+,-./:;<=>?@""[\]^_\`{|}~]", password):
+    if re.search(r"[!#$%&'()*+,-./:;<=>?@[\]^_\`{|}~]", password):
         score+=1
     else:
         string += "password must contain a special character, "
@@ -157,7 +153,7 @@ def strength_checker(password):
     # password should not contain spaces
     if re.search(r"\s+",password):
         string += "password cannot contain a space, "
-        sys.exit()
+        return "0", string
 
     return str(score), string
 
@@ -246,10 +242,11 @@ def delete_password(window, key):
         website_txt = txt_website.get()
         if website_txt == "":
             messagebox.showerror("Error", "website cannot be empty")
+            return
         conn = sqlite3.connect(DB_Name)
         cursor = conn.cursor()
         
-        cursor.execute("""DELETE FROM password_vault WHERE ? = ?""", (website, website_txt))
+        cursor.execute("""DELETE FROM password_vault WHERE website = ?""", ( website_txt))
 
         conn.commit()
         conn.close()
