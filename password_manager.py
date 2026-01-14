@@ -138,14 +138,14 @@ def strength_checker(password):
         
 
     # password should contain a special character !#$%&'()*+,-./:;<=>?@[\]^_\`{|}~
-    if re.search(r"[!#$%&'()*+,-./:;<=>?@[\]^_\`{|}~]", password):
+    if re.search(r"[!#$%&'()*+,-./:;<=>?@[\]^_\`\\ \"{|}~]", password):
         score+=1
     else:
         string += "password must contain a special character, "
         
 
     # password should contain a number
-    if re.search(r"[123456789]", password):
+    if re.search(r"[0-9]", password):
         score+=1
     else:
         string += "password must contain a number, "
