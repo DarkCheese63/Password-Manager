@@ -44,7 +44,7 @@ This application employs a "Trust No One" architecture regarding the database fi
 2.  Verification: Only the Hash and the Salt are stored in the `master_password` table.
 3.  Vault Encryption: When the user logs in successfully, the derived key is loaded into memory and used to encrypt/decrypt entries in the `password_vault` table using*Fernet (AES).
 
-## 📸 Screenshots
+# Screenshots
 
 <img width="404" height="331" alt="image" src="https://github.com/user-attachments/assets/1e0825c8-32d9-46b0-ace7-e5642c398677" />
 
