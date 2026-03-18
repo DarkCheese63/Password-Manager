@@ -21,15 +21,15 @@ A local, desktop-based password manager built with Python and Tkinter. This appl
 # Installation & Usage
 
 1.  Clone the repository
-    git clone https://github.com/DarkCheese63/Password-Manager.git
-    cd password-manager
+    * git clone https://github.com/DarkCheese63/Password-Manager.git
+    * cd password-manager
     
 2.  Install Dependencies
-    This project requires the `cryptography` library.
-    pip install cryptography
+    * This project requires the `cryptography` library.
+    * pip install cryptography
  
 3.  Run the Application
-    python password_manager.py
+    * python password_manager.py
 
 4.  First Run:
     * The app will detect that no database exists.
